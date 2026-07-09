@@ -1,0 +1,170 @@
+// AUTOMATICALLY GENERATED: imported vars from saved link.
+var CONVERT_TO_IMPORT = (
+[{"type":"table","name":"table","record":{"id":"projects/esri-india-paper/assets/Purulia"}},{"type":"table","name":"table2","record":{"id":"projects/esri-india-paper/assets/Purulia"}}])
+
+// AUTOMATICALLY GENERATED: location from saved link.
+Map.setCenter(85.69161480628912, 23.176181474406775, 8)
+
+Map.centerObject(table2, 9);
+Map.addLayer(table2, {color:'red'}, 'Purulia');
+// Landsat 8 Collection
+var landsat = ee.ImageCollection("LANDSAT/LC08/C02/T1_L2")
+  .filterBounds(table2)
+  .filterDate('2022-01-01','2022-12-31')
+  .filter(ee.Filter.lt('CLOUD_COVER',20))
+  .median();
+  Map.addLayer(
+landsat,
+{
+bands:['SR_B4','SR_B3','SR_B2'],
+min:7000,
+max:15000
+},
+'Landsat True Color');
+Map.centerObject(table2, 9);
+Map.addLayer(table2, {color: 'red'}, 'Purulia Boundary');
+// NDVI Calculation
+var ndvi = landsat.normalizedDifference(['SR_B5', 'SR_B4']);
+
+Map.addLayer(
+ndvi.clip(table2),
+{
+min: 0,
+max: 0.8,
+palette: ['FFFFFF',
+'CE7E45',
+'FCD163',
+'99B718',
+'74A901',
+'66A000',
+'529400',
+'3E8601',
+'207401',
+'056201',
+'004C00']
+},
+'NDVI');
+// Surface Temperature (Kelvin)
+var lst = landsat.select('ST_B10')
+  .multiply(0.00341802)
+  .add(149.0)
+  .subtract(273.15);
+var lstPurulia = lst.clip(table2);
+Map.addLayer(
+lstPurulia,
+{
+min:20,
+max:45,
+palette:[
+'040274',
+'2C7BB6',
+'00A6CA',
+'00CCBC',
+'90EB9D',
+'FFFF8C',
+'F9D057',
+'F29E2E',
+'E76818',
+'D7191C'
+]
+},
+'LST (°C)'
+);
+var stats = lstPurulia.reduceRegion({
+  reducer: ee.Reducer.mean(),
+  geometry: table2,
+  scale: 30,
+  maxPixels: 1e13
+});
+
+print('Average LST (°C):', stats);
+Export.image.toDrive({
+  image: lstPurulia,
+  description: 'Purulia_LST_2022',
+  folder: 'GEE_Export',
+  fileNamePrefix: 'Purulia_LST_2022',
+  region: table2.geometry(),
+  scale: 30,
+  maxPixels: 1e13,
+  fileFormat: 'GeoTIFF'
+});
+Export.image.toDrive({
+  image: lstPurulia.clip(table2),
+  description: 'Purulia_LST',
+  region: table2.geometry().bounds(),
+  scale: 100,
+  maxPixels: 1e13,
+  fileFormat: 'GeoTIFF'
+});
+// NDVI
+var ndvi = landsat.normalizedDifference(['SR_B5','SR_B4'])
+.rename('NDVI');
+
+Map.addLayer(
+  ndvi.clip(table2),
+  {
+    min:-0.2,
+    max:0.8,
+    palette:[
+      'white',
+      'yellow',
+      'lightgreen',
+      'green',
+      'darkgreen'
+    ]
+  },
+  'NDVI'
+);
+Export.image.toDrive({
+  image: ndvi.clip(table2),
+  description:'Purulia_NDVI_2022',
+  folder:'GEE_Export',
+  fileNamePrefix:'Purulia_NDVI_2022',
+  region:table2.geometry(),
+  scale:30,
+  maxPixels:1e13
+});
+// NDWI
+var ndwi = landsat.normalizedDifference(['SR_B3','SR_B5'])
+.rename('NDWI');
+
+Map.addLayer(
+  ndwi.clip(table2),
+  {
+    min:-1,
+    max:1,
+    palette:[
+      'brown',
+      'yellow',
+      'cyan',
+      'blue'
+    ]
+  },
+  'NDWI'
+);
+Export.image.toDrive({
+  image: ndwi.clip(table2),
+  description:'Purulia_NDWI_2022',
+  folder:'GEE_Export',
+  fileNamePrefix:'Purulia_NDWI_2022',
+  region:table2.geometry(),
+  scale:30,
+  maxPixels:1e13
+});
+var lulc = ee.Image("ESA/WorldCover/v200/2021")
+.clip(table2);
+
+Map.addLayer(
+  lulc,
+  {},
+  'LULC'
+);
+Export.image.toDrive({
+  image:lulc,
+  description:'Purulia_LULC_2021',
+  folder:'GEE_Export',
+  fileNamePrefix:'Purulia_LULC_2021',
+  region:table2.geometry(),
+  scale:10,
+  maxPixels:1e13
+});
